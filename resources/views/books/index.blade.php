@@ -14,7 +14,7 @@
             <a href="{{ route('books.export.pdf', request()->query()) }}" class="px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2 border-r border-outline-variant">
                 <span class="material-symbols-outlined text-outline text-[20px]">picture_as_pdf</span> PDF
             </a>
-            <a href="{{ route('books.export.excel', request()->query()) }}" class="px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2">
+            <a href="{{ route('books.export.index', request()->query()) }}" class="px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2">
                 <span class="material-symbols-outlined text-outline text-[20px]">table</span> Excel
             </a>
         </div>

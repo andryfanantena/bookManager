@@ -118,7 +118,7 @@ class ScanController extends Controller
             'rayon' => $data['rayon'] ?: null,
             'mots_cles' => $data['mots_cles'] ?: [],
             'chapitres' => $data['chapitres'] ?: [],
-            'cover_image' => null,
+            'cover_image' => $catalogData['cover_image'] ?? null,
             'statut' => 'a_verifier',
             'ai_raw_response' => [
                 'catalog_source' => $catalogResult['source'] ?? null,

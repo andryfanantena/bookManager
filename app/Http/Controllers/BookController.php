@@ -127,6 +127,21 @@ class BookController extends Controller
     }
 
     /**
+     * Aperçu paginé du catalogue dans le format du fichier Excel.
+     */
+    public function exportPreview(Request $request)
+    {
+        $books = $this->filteredBooksQuery($request)->paginate(25)->withQueryString();
+        $categories = Category::orderBy('nom')->get();
+        $export = new BooksExport($books->getCollection());
+        $headings = $export->headings();
+        $rows = $books->getCollection()
+            ->map(fn (Book $book) => $export->map($book));
+
+        return view('books.export', compact('books', 'categories', 'headings', 'rows'));
+    }
+
+    /**
      * Export Excel du catalogue (respecte les filtres de recherche actifs).
      * Nécessite le package maatwebsite/excel (voir README).
      */
@@ -145,12 +160,18 @@ class BookController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('titre', 'like', "%{$search}%")
                     ->orWhere('auteur', 'like', "%{$search}%")
-                    ->orWhere('isbn', 'like', "%{$search}%");
+                    ->orWhere('isbn', 'like', "%{$search}%")
+                    ->orWhere('cote_dewey', 'like', "%{$search}%")
+                    ->orWhere('code_barre', 'like', "%{$search}%");
             });
         }
 
         if ($statut = $request->input('statut')) {
             $query->where('statut', $statut);
+        }
+
+        if ($categoryId = $request->input('category_id')) {
+            $query->where('category_id', $categoryId);
         }
 
         return $query->orderBy('cote_dewey');

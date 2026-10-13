@@ -54,12 +54,22 @@ class Book extends Model
     }
 
     /**
-     * URL publique de la couverture (avec image par défaut si absente).
+     * URL publique de la couverture.
+     *
+     * Deux cas possibles :
+     * - une URL externe (miniature fournie par Google Books lors du lookup
+     *   par ISBN) : on la retourne telle quelle ;
+     * - un fichier stocké localement (upload manuel depuis le formulaire de
+     *   vérification) : on construit l'URL via le disque "public".
      */
     public function getCoverUrlAttribute(): ?string
     {
         if (! $this->cover_image) {
             return null;
+        }
+
+        if (str_starts_with($this->cover_image, 'http://') || str_starts_with($this->cover_image, 'https://')) {
+            return $this->cover_image;
         }
 
         return Storage::disk('public')->url($this->cover_image);

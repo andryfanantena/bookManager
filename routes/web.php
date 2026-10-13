@@ -22,6 +22,7 @@ Route::delete('/books/{book}', [BookController::class, 'destroy'])->name('books.
 
 // Export
 Route::get('/books/export/pdf', [BookController::class, 'exportPdf'])->name('books.export.pdf');
+Route::get('/books/export', [BookController::class, 'exportPreview'])->name('books.export.index');
 Route::get('/books/export/excel', [BookController::class, 'exportExcel'])->name('books.export.excel');
 
 // Rubriques / catégories

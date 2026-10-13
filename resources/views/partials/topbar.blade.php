@@ -41,8 +41,8 @@
             <a href="{{ route('categories.index') }}" class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-dim">
                 <span class="material-symbols-outlined">category</span> Catégories
             </a>
-            <a href="{{ route('books.export.pdf') }}" class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-dim">
-                <span class="material-symbols-outlined">file_download</span> Exporter
+            <a href="{{ route('books.export.index') }}" class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-dim">
+                <span class="material-symbols-outlined">table_view</span> Exporter
             </a>
         </nav>
     </div>

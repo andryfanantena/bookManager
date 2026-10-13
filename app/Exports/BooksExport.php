@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Models\Book;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -39,7 +40,8 @@ class BooksExport implements FromCollection, WithHeadings, WithMapping
         ];
     }
 
-    public function map($book): array
+    /** @param Book $book */
+    public function map(mixed $book): array
     {
         return [
             $book->id,

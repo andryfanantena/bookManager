@@ -7,7 +7,7 @@
 
     <header class="mb-xl">
             <h2 class="font-headline-lg text-headline-lg md:text-display-lg text-on-surface">Rechercher un livre par ISBN</h2>
-            <p class="font-body-md text-body-md text-on-surface-variant">Les informations sont recherchées dans Open Library, puis Google Books si nécessaire.</p>
+            <p class="font-body-md text-body-md text-on-surface-variant">Google Books est consulté en priorité. Open Library est utilisé en premier secours, puis Gallica (BnF) si nécessaire.</p>
     </header>
 
     <div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">

@@ -4,6 +4,7 @@
         ['route' => 'books.index', 'icon' => 'library_books', 'label' => 'Catalogue'],
         ['route' => 'categories.index', 'icon' => 'category', 'label' => 'Catégories'],
         ['route' => 'scan.index', 'icon' => 'barcode_scanner', 'label' => 'Scanner'],
+        ['route' => 'books.export.index', 'icon' => 'table_view', 'label' => 'Exporter'],
     ];
 @endphp
 
@@ -26,9 +27,5 @@
             </a>
         @endforeach
 
-        <a href="{{ route('books.export.pdf') }}" class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-dim transition-colors group">
-            <span class="material-symbols-outlined group-hover:text-primary transition-colors">file_download</span>
-            <span class="font-label-md text-label-md">Exporter</span>
-        </a>
     </nav>
 </aside>
