@@ -56,6 +56,11 @@ FILESYSTEM_DISK=public
   éditeur, date d'édition, lien, image de couverture). Une clé
   `GOOGLE_BOOKS_API_KEY` est recommandée (quota plus confortable) mais pas
   obligatoire — l'API fonctionne aussi sans clé pour un usage léger.
+- En cas d'indisponibilité temporaire de Google Books (HTTP 429 ou 5xx), la
+  requête est retentée avec un délai progressif ; si l'API reste indisponible,
+  la recherche continue avec Open Library puis Gallica.
+- Si les catalogues ne fournissent pas de couverture, le scan essaie aussi
+  l'image produit Amazon associée à l'ISBN.
 - **Open Library** fournit la **cote Dewey** (champ `dewey_decimal_class` des
   éditions cataloguées). Aucune clé, aucune inscription : c'est une API
   publique gratuite. Elle remplace l'API **OCLC Classify**, définitivement
@@ -100,8 +105,9 @@ Puis ouvrez `http://127.0.0.1:8000` — vous serez redirigé vers `/dashboard`.
    - si Google Books répond, interroge ensuite **Open Library** de façon
      ciblée pour récupérer uniquement la **cote Dewey** (sans refaire tout
      le travail de résolution des auteurs, déjà obtenus via Google Books) ;
-   - si Google Books ne trouve rien, **Open Library sert de repli complet**
-     (titre, auteur, éditeur, date **et** cote Dewey si disponible) ;
+   - si Google Books ne trouve rien ou reste indisponible, **Open Library sert
+     de repli complet** (titre, auteur, éditeur, date **et** cote Dewey si
+     disponible) ;
    - si Open Library ne trouve rien non plus, le service SRU de **Gallica
      (BnF)** est interrogé pour rechercher l'ISBN et récupérer le document
      numérisé correspondant lorsqu'il est disponible.

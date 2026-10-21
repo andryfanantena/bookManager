@@ -27,6 +27,7 @@ class ScanControllerTest extends TestCase
                     'editeur' => 'Gallimard',
                     'date_edition' => '1993',
                     'lien_editeur' => 'https://books.google.test/volume',
+                    'cover_image' => 'https://covers.openlibrary.org/b/id/12345-L.jpg',
                 ],
                 'context' => [
                     'categories' => ['Fiction'],
@@ -44,6 +45,7 @@ class ScanControllerTest extends TestCase
         $this->assertSame('Gallimard', $book->editeur);
         $this->assertSame('1993', $book->date_edition);
         $this->assertSame('https://books.google.test/volume', $book->lien_editeur);
+        $this->assertSame('https://covers.openlibrary.org/b/id/12345-L.jpg', $book->cover_image);
         $this->assertSame('Fiction', $book->category->nom);
     }
 }

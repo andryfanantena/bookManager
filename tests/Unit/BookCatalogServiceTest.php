@@ -48,6 +48,7 @@ class BookCatalogServiceTest extends TestCase
             'openlibrary.org/isbn/*' => Http::response([
                 'title' => '1984',
                 'dewey_decimal_class' => ['823/.912'],
+                'covers' => [12345],
             ], 200),
             'www.googleapis.com/books/v1/volumes*' => Http::response([
                 'items' => [
@@ -70,6 +71,56 @@ class BookCatalogServiceTest extends TestCase
         $this->assertSame('George Orwell', $result['data']['auteur']);
         // Le "/" de la notation Open Library est retiré pour le rangement.
         $this->assertSame('823.912', $result['data']['cote_dewey']);
+        $this->assertSame('https://covers.openlibrary.org/b/id/12345-L.jpg', $result['data']['cover_image']);
+    }
+
+    public function test_it_uses_an_open_library_cover_when_google_books_has_no_cover(): void
+    {
+        Http::fake([
+            'openlibrary.org/isbn/*' => Http::response([
+                'title' => '1984',
+                'covers' => [12345],
+            ], 200),
+            'www.googleapis.com/books/v1/volumes*' => Http::response([
+                'items' => [
+                    [
+                        'volumeInfo' => [
+                            'title' => '1984',
+                            'authors' => ['George Orwell'],
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $result = app(BookCatalogService::class)->findByIsbn('9780306406157');
+
+        $this->assertSame('Google Books', $result['source']);
+        $this->assertSame('https://covers.openlibrary.org/b/id/12345-L.jpg', $result['data']['cover_image']);
+    }
+
+    public function test_it_uses_amazon_as_a_cover_fallback_when_catalogs_have_no_image(): void
+    {
+        Http::fake([
+            'openlibrary.org/isbn/*' => Http::response([], 404),
+            'www.googleapis.com/books/v1/volumes*' => Http::response([
+                'items' => [
+                    [
+                        'volumeInfo' => [
+                            'title' => 'L’île du crâne',
+                            'authors' => ['Anthony Horowitz'],
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $result = app(BookCatalogService::class)->findByIsbn('9782010009037');
+
+        $this->assertSame(
+            'https://images-eu.ssl-images-amazon.com/images/P/9782010009037.01._SX350_.jpg',
+            $result['data']['cover_image']
+        );
     }
 
     public function test_it_retries_google_books_after_a_temporary_server_error(): void
@@ -96,6 +147,32 @@ class BookCatalogServiceTest extends TestCase
         $this->assertSame('1984', $result['data']['titre']);
     }
 
+    public function test_it_falls_back_to_open_library_when_google_books_keeps_returning_503(): void
+    {
+        Http::fake([
+            'www.googleapis.com/books/v1/volumes*' => Http::sequence()
+                ->push(['error' => ['message' => 'Service unavailable']], 503)
+                ->push(['error' => ['message' => 'Service unavailable']], 503)
+                ->push(['error' => ['message' => 'Service unavailable']], 503)
+                ->push(['error' => ['message' => 'Service unavailable']], 503),
+            'openlibrary.org/isbn/*' => Http::response([
+                'title' => '1984',
+                'publishers' => ['Secker & Warburg'],
+                'publish_date' => '1949',
+            ], 200),
+        ]);
+
+        $result = app(BookCatalogService::class)->findByIsbn('9780306406157');
+
+        $this->assertSame('Open Library', $result['source']);
+        $this->assertSame('1984', $result['data']['titre']);
+        $this->assertSame(
+            'https://images-eu.ssl-images-amazon.com/images/P/9780306406157.01._SX350_.jpg',
+            $result['data']['cover_image']
+        );
+        Http::assertSentCount(5);
+    }
+
     public function test_it_falls_back_to_open_library_when_google_books_has_no_match(): void
     {
         Http::fake([
@@ -108,6 +185,7 @@ class BookCatalogServiceTest extends TestCase
                 'publish_date' => '1943',
                 'subjects' => ['Fiction'],
                 'dewey_decimal_class' => ['843'],
+                'covers' => [12345],
             ], 200),
             'openlibrary.org/authors/OL1A.json' => Http::response([
                 'name' => 'Antoine de Saint-Exupéry',
@@ -122,6 +200,7 @@ class BookCatalogServiceTest extends TestCase
         $this->assertSame('Gallimard', $result['data']['editeur']);
         $this->assertSame('1943', $result['data']['date_edition']);
         $this->assertSame('843', $result['data']['cote_dewey']);
+        $this->assertSame('https://covers.openlibrary.org/b/id/12345-L.jpg', $result['data']['cover_image']);
         $this->assertSame(['Fiction'], $result['context']['categories']);
     }
 

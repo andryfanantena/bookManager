@@ -32,11 +32,11 @@
             <div class="md:col-span-4 lg:col-span-3 flex flex-col gap-md">
                 <label class="aspect-[2/3] w-full rounded-lg border border-outline-variant overflow-hidden bg-surface-container flex items-center justify-center relative group cursor-pointer">
                     @if ($book->cover_url)
-                        <img id="cover-preview" src="{{ $book->cover_url }}" class="w-full h-full object-cover" alt="Couverture">
+                        <img id="cover-preview" src="{{ $book->cover_url }}" class="w-full h-full object-cover" alt="Couverture" onerror="coverImageFailed(this)">
                     @else
                         <img id="cover-preview" src="" class="w-full h-full object-cover hidden" alt="Couverture">
-                        <span id="cover-placeholder" class="material-symbols-outlined text-[48px] text-outline">image</span>
                     @endif
+                    <span id="cover-placeholder" class="material-symbols-outlined text-[48px] text-outline{{ $book->cover_url ? ' hidden' : '' }}">image</span>
                     <div class="absolute inset-0 bg-on-background/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
                         <span class="bg-surface text-primary font-label-md text-label-md px-md py-sm rounded-full flex items-center gap-xs shadow-md">
                             <span class="material-symbols-outlined">edit</span> Modifier l'image
@@ -44,12 +44,6 @@
                     </div>
                     <input type="file" name="cover_image" accept="image/*" class="hidden" onchange="previewCover(event)">
                 </label>
-                @if ($book->ai_raw_response)
-                    <p class="text-label-sm text-on-surface-variant flex items-center gap-xs">
-                        <span class="material-symbols-outlined text-[16px]">smart_toy</span>
-                        Informations récupérées automatiquement
-                    </p>
-                @endif
             </div>
 
             {{-- Colonne droite : formulaire --}}
@@ -196,6 +190,11 @@
         img.src = url;
         img.classList.remove('hidden');
         if (placeholder) placeholder.classList.add('hidden');
+    }
+
+    function coverImageFailed(image) {
+        image.classList.add('hidden');
+        document.getElementById('cover-placeholder')?.classList.remove('hidden');
     }
 </script>
 @endpush

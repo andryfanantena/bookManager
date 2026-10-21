@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -36,9 +37,15 @@ class BookCatalogService
             $sources = [$googleBooks['source']];
 
             if ($dewey) {
-                $data['cote_dewey'] = $dewey['cote_dewey'];
-                $sources[] = 'Open Library (cote Dewey)';
+                if ($dewey['cote_dewey']) {
+                    $data['cote_dewey'] = $dewey['cote_dewey'];
+                    $sources[] = 'Open Library (cote Dewey)';
+                }
+
+                $data['cover_image'] ??= $dewey['cover_image'];
             }
+
+            $data['cover_image'] ??= $this->amazonCoverUrlForIsbn($isbn);
 
             return [
                 'source' => implode(' + ', $sources),
@@ -56,9 +63,12 @@ class BookCatalogService
         $openLibrary = $this->findInOpenLibrary($isbn);
 
         if ($openLibrary) {
+            $data = $openLibrary['data'];
+            $data['cover_image'] ??= $this->amazonCoverUrlForIsbn($isbn);
+
             return [
                 'source' => $openLibrary['source'],
-                'data' => $openLibrary['data'],
+                'data' => $data,
                 'context' => $openLibrary['context'],
                 'raw' => [
                     'google_books' => null,
@@ -69,16 +79,28 @@ class BookCatalogService
 
         $gallica = $this->findInGallica($isbn);
 
-        return $gallica ? [
+        if (! $gallica) {
+            return null;
+        }
+
+        $data = $gallica['data'];
+        $data['cover_image'] ??= $this->amazonCoverUrlForIsbn($isbn);
+
+        return [
             'source' => $gallica['source'],
-            'data' => $gallica['data'],
+            'data' => $data,
             'context' => $gallica['context'],
             'raw' => [
                 'google_books' => null,
                 'open_library' => null,
                 'gallica' => $gallica['raw'],
             ],
-        ] : null;
+        ];
+    }
+
+    protected function amazonCoverUrlForIsbn(string $isbn): string
+    {
+        return 'https://images-eu.ssl-images-amazon.com/images/P/'.rawurlencode($isbn).'.01._SX350_.jpg';
     }
 
     /**
@@ -104,8 +126,15 @@ class BookCatalogService
             }
 
             $cote = $this->extractDeweyClassification($edition);
+            $coverId = $edition['covers'][0] ?? null;
 
-            return $cote ? ['cote_dewey' => $cote, 'raw' => $edition] : null;
+            return [
+                'cote_dewey' => $cote,
+                'cover_image' => is_numeric($coverId)
+                    ? 'https://covers.openlibrary.org/b/id/'.$coverId.'-L.jpg'
+                    : null,
+                'raw' => $edition,
+            ];
         } catch (Throwable $e) {
             Log::debug('Open Library Dewey lookup failed', ['message' => $e->getMessage()]);
 
@@ -125,13 +154,27 @@ class BookCatalogService
                 $query['key'] = $apiKey;
             }
 
-            $response = Http::retry(2, 250)
+            $response = Http::retry(
+                [250, 500, 1000],
+                when: static function (Throwable $exception): bool {
+                    if ($exception instanceof RequestException) {
+                        return $exception->response->status() === 429
+                            || $exception->response->serverError();
+                    }
+
+                    return true;
+                },
+                throw: false,
+            )
                 ->acceptJson()
                 ->timeout(8)
                 ->get('https://www.googleapis.com/books/v1/volumes', $query);
 
             if ($response->failed()) {
-                Log::warning('Google Books lookup failed', ['status' => $response->status()]);
+                Log::warning('Google Books lookup failed', [
+                    'status' => $response->status(),
+                    'isbn' => $isbn,
+                ]);
 
                 return null;
             }
@@ -178,7 +221,10 @@ class BookCatalogService
                 'raw' => $volume,
             ];
         } catch (Throwable $e) {
-            Log::warning('Google Books request error', ['message' => $e->getMessage()]);
+            Log::warning('Google Books request error', [
+                'exception' => $e::class,
+                'isbn' => $isbn,
+            ]);
 
             return null;
         }
@@ -242,6 +288,9 @@ class BookCatalogService
                     'date_edition' => $context['date_edition'],
                     'lien_editeur' => 'https://openlibrary.org'.($edition['key'] ?? '/isbn/'.$isbn),
                     'cote_dewey' => $this->extractDeweyClassification($edition),
+                    'cover_image' => is_numeric($edition['covers'][0] ?? null)
+                        ? 'https://covers.openlibrary.org/b/id/'.$edition['covers'][0].'-L.jpg'
+                        : null,
                 ],
                 'context' => $context,
                 'raw' => $edition,
