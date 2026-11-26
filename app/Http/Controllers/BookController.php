@@ -133,7 +133,7 @@ class BookController extends Controller
     {
         $books = $this->filteredBooksQuery($request)->paginate(25)->withQueryString();
         $categories = Category::orderBy('nom')->get();
-        $export = new BooksExport($books->getCollection());
+        $export = new BooksExport($books->getCollection(), ($books->firstItem() ?? 1) - 1);
         $headings = $export->headings();
         $rows = $books->getCollection()
             ->map(fn (Book $book) => $export->map($book));

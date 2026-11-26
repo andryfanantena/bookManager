@@ -3,70 +3,108 @@
 @section('title', 'BookManager - Scanner')
 
 @section('content')
-<div x-data="bookScanner()">
+<div x-data="bookScanner()" class="space-y-6 sm:space-y-8">
 
-    <header class="mb-xl">
-            <h2 class="font-headline-lg text-headline-lg md:text-display-lg text-on-surface">Rechercher un livre par ISBN</h2>
-            <p class="font-body-md text-body-md text-on-surface-variant">Google Books est consulté en priorité. Open Library est utilisé en premier secours, puis Gallica (BnF) si nécessaire.</p>
+    <header class="mb-6">
+        <div class="flex items-center gap-2 text-xs font-semibold text-secondary uppercase tracking-wider mb-1">
+            <i data-lucide="scan-line" class="w-4 h-4" aria-hidden="true"></i>
+            <span>Recherche &amp; Enrichissement</span>
+        </div>
+        <h2 class="font-headline-lg text-2xl sm:text-3xl font-bold text-on-surface">Rechercher un livre par ISBN</h2>
+        <p class="font-body-md text-sm sm:text-base text-on-surface-variant mt-1">Interrogation multi-sources : Google Books, Open Library et Gallica (BnF) pour un catalogage automatisé.</p>
     </header>
 
-    <div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
-        <div class="flex flex-col items-center justify-center border-b border-outline-variant/30 bg-surface-container-low/30 py-xl px-lg">
-            <form @submit.prevent="analyzeIsbn" class="w-full max-w-md mx-auto space-y-md">
-                <label for="isbn" class="block font-label-md text-on-surface">ISBN du livre</label>
-                <input id="isbn" type="text" x-model="isbn" required maxlength="20"
-                       placeholder="Ex. 978-2-07-036822-8" autocomplete="off"
-                       class="w-full rounded-xl border border-outline-variant bg-surface px-md py-md text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                       :disabled="loading">
-                <p class="text-on-surface-variant text-label-sm">ISBN-10 ou ISBN-13, avec ou sans tirets.</p>
-                <button type="submit" :disabled="loading"
-                        class="w-full bg-primary text-on-primary rounded-xl font-headline-md py-md flex items-center justify-center gap-sm shadow-lg hover:bg-primary-container disabled:opacity-50">
-                    <span class="material-symbols-outlined">search</span>
-                    Rechercher le livre
+    <div class="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden shadow-xs">
+        <div class="flex flex-col items-center justify-center border-b border-outline-variant/60 bg-gradient-to-b from-surface to-surface-container/30 py-10 px-4 sm:px-6">
+
+            <!-- Graphic scanner laser avec animation GSAP transform y (/gsap-performance) -->
+            <div class="relative w-40 h-28 mb-6 border-2 border-dashed border-secondary/40 rounded-2xl flex items-center justify-center bg-white shadow-inner overflow-hidden">
+                <i data-lucide="scan-barcode" class="w-14 h-14 text-outline/40" aria-hidden="true"></i>
+                <!-- Faisceau laser animé GSAP via transforms GPU -->
+                <div id="scanner-laser" class="absolute left-0 right-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+            </div>
+
+            <form @submit.prevent="analyzeIsbn" class="w-full max-w-md mx-auto space-y-4">
+                <div>
+                    <label for="isbn" class="block text-xs sm:text-sm text-on-surface font-semibold mb-1.5">Numéro ISBN de l'ouvrage</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-outline">
+                            <i data-lucide="barcode" class="w-5 h-5" aria-hidden="true"></i>
+                        </div>
+                        <input
+                            id="isbn"
+                            type="text"
+                            x-model="isbn"
+                            required
+                            maxlength="20"
+                            placeholder="Ex. 978-2-07-036822-8"
+                            autocomplete="off"
+                            class="w-full pl-11 pr-4 py-3 rounded-xl border border-outline-variant bg-white text-on-surface focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30 text-sm font-mono shadow-2xs transition-all"
+                            :disabled="loading"
+                        >
+                    </div>
+                    <div class="flex justify-between items-center mt-1.5 text-xs text-on-surface-variant">
+                        <span>Format ISBN-10 ou ISBN-13</span>
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    :disabled="loading"
+                    class="w-full bg-primary text-white rounded-xl py-3 px-4 flex items-center justify-center gap-2 font-semibold text-sm shadow-xs hover:bg-primary-container disabled:opacity-50 transition-all hover:shadow hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                    <i data-lucide="search" class="w-4 h-4" x-show="!loading" aria-hidden="true"></i>
+                    <span x-text="loading ? 'Recherche des métadonnées...' : 'Rechercher le livre'"></span>
                 </button>
             </form>
 
             {{-- État d'analyse --}}
-            <div class="w-full max-w-md mx-auto text-center py-lg" x-show="loading" x-cloak>
-                <div class="inline-flex items-center gap-sm text-primary font-label-md text-label-md">
-                    <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+            <div class="w-full max-w-md mx-auto text-center py-4" x-show="loading" x-cloak>
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-high text-primary font-medium text-xs sm:text-sm">
+                    <svg class="animate-spin h-4 w-4 text-secondary" viewBox="0 0 24 24" fill="none">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                     </svg>
-                    Analyse en cours ...
+                    <span>Interrogation des sources BnF, Google &amp; OpenLibrary...</span>
                 </div>
             </div>
 
-            <p x-show="errorMessage" x-text="errorMessage" x-cloak class="text-error font-label-md text-label-md mt-md"></p>
+            <p x-show="errorMessage" x-text="errorMessage" x-cloak class="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl font-medium mt-4 max-w-md w-full" role="alert"></p>
         </div>
 
         {{-- Liste des recherches récentes --}}
-        <div class="p-lg">
-            <div class="flex items-center justify-between mb-md">
-                <h3 class="font-headline-md text-on-surface">Derniers livres recherchés</h3>
-                <a href="{{ route('books.index') }}" class="text-label-md text-primary font-semibold hover:underline">Voir tout</a>
+        <div class="p-5 sm:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-headline-md text-base sm:text-lg text-on-surface font-bold">Derniers livres recherchés</h3>
+                <a href="{{ route('books.index') }}" class="text-xs text-secondary font-bold hover:underline flex items-center gap-1 group">
+                    <span>Voir tout</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
+                </a>
             </div>
-            <div class="space-y-sm">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 @forelse ($recentScans as $book)
-                    <a href="{{ route('books.edit', $book) }}" class="flex items-center gap-md p-md bg-surface rounded-lg border border-outline-variant/30 hover:border-secondary/50 transition-colors">
-                        <div class="w-12 h-16 bg-surface-dim rounded flex items-center justify-center text-outline overflow-hidden">
+                    <a href="{{ route('books.edit', $book) }}" class="gsap-card flex items-start gap-3 p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/70 hover:border-secondary transition-all group">
+                        <div class="w-12 h-16 bg-surface-container rounded-lg flex items-center justify-center text-outline overflow-hidden flex-shrink-0 shadow-2xs group-hover:scale-105 transition-transform duration-200">
                             @if ($book->cover_url)
-                                <img src="{{ $book->cover_url }}" class="w-full h-full object-cover" alt="">
+                                <img src="{{ $book->cover_url }}" class="w-full h-full object-cover" alt="{{ $book->titre }}" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden')">
+                                <i data-lucide="book" class="hidden w-5 h-5 text-outline" aria-hidden="true"></i>
                             @else
-                                <span class="material-symbols-outlined">book</span>
+                                <i data-lucide="book" class="w-5 h-5 text-outline" aria-hidden="true"></i>
                             @endif
                         </div>
-                        <div class="flex-1">
-                            <h4 class="font-label-md text-on-surface font-bold">{{ $book->titre }}</h4>
-                            <p class="text-label-sm text-on-surface-variant">{{ $book->auteur ?: 'Auteur inconnu' }}</p>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-bold text-xs sm:text-sm text-on-surface truncate group-hover:text-secondary transition-colors">{{ $book->titre }}</h4>
+                            <p class="text-xs text-on-surface-variant whitespace-normal break-words mt-0.5">{{ $book->auteur ?: 'Auteur non renseigné' }}</p>
+                            <span class="inline-block mt-1 font-mono text-[10px] text-outline bg-surface-container px-1.5 py-0.5 rounded">
+                                {{ $book->isbn ?: 'Sans ISBN' }}
+                            </span>
                         </div>
-                        <div class="flex flex-col items-end gap-xs">
-                            <span class="bg-surface-container-high text-primary px-sm py-xs rounded text-[10px] font-bold uppercase">ISBN</span>
-                            <span class="text-[10px] text-outline">{{ $book->isbn ?: '—' }}</span>
-                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-outline group-hover:text-secondary group-hover:translate-x-0.5 transition-all" aria-hidden="true"></i>
                     </a>
                 @empty
-                    <p class="text-on-surface-variant font-body-md text-body-md text-center py-lg">Aucune recherche pour le moment.</p>
+                    <div class="col-span-2 py-8 text-center text-on-surface-variant text-sm">
+                        Aucune recherche enregistrée pour le moment.
+                    </div>
                 @endforelse
             </div>
         </div>

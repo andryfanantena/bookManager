@@ -1,1 +1,1 @@
-//
+import './animations.js';

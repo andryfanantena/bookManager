@@ -5,11 +5,25 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class Book extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::creating(function (Book $book): void {
+            $connection = DB::connection();
+
+            if ($connection->getDriverName() === 'sqlite' && ! static::query()->exists()) {
+                $connection->table('sqlite_sequence')
+                    ->where('name', $book->getTable())
+                    ->delete();
+            }
+        });
+    }
 
     protected $fillable = [
         'cote_dewey',

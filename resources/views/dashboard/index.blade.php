@@ -4,93 +4,131 @@
 
 @section('content')
 
-<div>
-    <h2 class="font-headline-lg text-headline-lg text-on-surface">Activité récente</h2>
-    <p class="font-body-md text-body-md text-on-surface-variant mt-xs">Voici un aperçu de vos statistiques et de vos derniers scans.</p>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-secondary uppercase tracking-wider mb-1">
+            <i data-lucide="layout-dashboard" class="w-4 h-4" aria-hidden="true"></i>
+            <span>Vue d'ensemble</span>
+        </div>
+        <h2 class="font-headline-lg text-2xl sm:text-3xl font-bold text-on-surface">Tableau de bord</h2>
+        <p class="font-body-md text-sm sm:text-base text-on-surface-variant mt-1">Aperçu en temps réel de votre catalogue et de vos derniers enregistrements.</p>
+    </div>
+    <div class="flex items-center gap-2.5 self-start sm:self-auto">
+        <a href="{{ route('scan.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:bg-primary-container transition-all hover:shadow hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <i data-lucide="scan-barcode" class="w-4 h-4" aria-hidden="true"></i>
+            <span>Nouveau scan</span>
+        </a>
+        <a href="{{ route('books.export.index') }}" class="inline-flex items-center gap-2 px-3.5 py-2 bg-surface-container-lowest border border-outline-variant text-on-surface rounded-xl text-xs sm:text-sm font-semibold shadow-2xs hover:bg-surface-container transition-all hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-secondary" aria-hidden="true"></i>
+            <span class="hidden sm:inline">Exporter</span>
+        </a>
+    </div>
 </div>
 
-{{-- Cartes de statistiques --}}
-<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-md md:gap-lg">
-    <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between hover:shadow-md transition-shadow duration-300">
-        <div class="flex justify-between items-start mb-md">
-            <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Livres enregistrés</span>
-            <div class="p-sm bg-surface-container-high rounded-lg text-primary">
-                <span class="material-symbols-outlined icon-fill">auto_stories</span>
+{{-- Cartes de statistiques animées avec GSAP ScrollTrigger.batch --}}
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6" aria-label="Statistiques clés">
+    <!-- Stat 1 : Livres enregistrés -->
+    <div class="gsap-card bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-xs">
+        <div class="flex justify-between items-start mb-4">
+            <span class="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">Livres enregistrés</span>
+            <div class="w-10 h-10 bg-surface-container-high rounded-xl text-primary flex items-center justify-center flex-shrink-0">
+                <i data-lucide="book-open" class="w-5 h-5 text-secondary" aria-hidden="true"></i>
             </div>
         </div>
-        <div class="flex items-baseline gap-sm">
-            <span class="font-display-lg text-display-lg text-on-surface">{{ number_format($totalBooks, 0, ',', ' ') }}</span>
+        <div class="flex items-baseline gap-2">
+            <span class="text-3xl sm:text-4xl text-on-surface font-extrabold stat-counter" data-target="{{ $totalBooks }}">{{ $totalBooks }}</span>
             @if (! is_null($growthPercent))
-                <span class="font-label-sm text-label-sm text-secondary">{{ $growthPercent >= 0 ? '+' : '' }}{{ $growthPercent }}%</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded-full {{ $growthPercent >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' }}">
+                    {{ $growthPercent >= 0 ? '+' : '' }}{{ $growthPercent }}%
+                </span>
             @endif
         </div>
     </div>
 
-    <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between hover:shadow-md transition-shadow duration-300">
-        <div class="flex justify-between items-start mb-md">
-            <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Ajoutés aujourd'hui</span>
-            <div class="p-sm bg-secondary-container rounded-lg text-on-secondary-container">
-                <span class="material-symbols-outlined icon-fill">barcode_scanner</span>
+    <!-- Stat 2 : Ajoutés aujourd'hui -->
+    <div class="gsap-card bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-xs">
+        <div class="flex justify-between items-start mb-4">
+            <span class="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">Ajoutés aujourd'hui</span>
+            <div class="w-10 h-10 bg-secondary-container rounded-xl text-white flex items-center justify-center flex-shrink-0">
+                <i data-lucide="calendar-check" class="w-5 h-5" aria-hidden="true"></i>
             </div>
         </div>
-        <span class="font-display-lg text-display-lg text-on-surface">{{ $addedToday }}</span>
+        <span class="text-3xl sm:text-4xl text-on-surface font-extrabold stat-counter" data-target="{{ $addedToday }}">{{ $addedToday }}</span>
     </div>
 
-    <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between hover:shadow-md transition-shadow duration-300">
-        <div class="flex justify-between items-start mb-md">
-            <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Catégories</span>
-            <div class="p-sm bg-surface-variant rounded-lg text-primary-container">
-                <span class="material-symbols-outlined icon-fill">category</span>
+    <!-- Stat 3 : Catégories -->
+    <div class="gsap-card bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-xs">
+        <div class="flex justify-between items-start mb-4">
+            <span class="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">Catégories</span>
+            <div class="w-10 h-10 bg-surface-container rounded-xl text-primary flex items-center justify-center flex-shrink-0">
+                <i data-lucide="tags" class="w-5 h-5 text-primary" aria-hidden="true"></i>
             </div>
         </div>
-        <div class="flex items-baseline gap-sm">
-            <span class="font-display-lg text-display-lg text-on-surface">{{ $totalCategories }}</span>
-            <span class="font-label-sm text-label-sm text-on-surface-variant">Actives</span>
+        <div class="flex items-baseline gap-2">
+            <span class="text-3xl sm:text-4xl text-on-surface font-extrabold stat-counter" data-target="{{ $totalCategories }}">{{ $totalCategories }}</span>
+            <span class="text-xs text-on-surface-variant font-medium">Actives</span>
         </div>
     </div>
 
-    <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow duration-300">
-        <div class="absolute top-0 right-0 w-16 h-16 bg-error-container rounded-bl-full -mr-8 -mt-8 opacity-20 group-hover:scale-110 transition-transform"></div>
-        <div class="flex justify-between items-start mb-md relative z-10">
-            <span class="font-label-md text-label-md text-error uppercase tracking-wider font-bold">À vérifier</span>
-            <div class="p-sm bg-error-container rounded-lg text-on-error-container">
-                <span class="material-symbols-outlined icon-fill">warning</span>
+    <!-- Stat 4 : À vérifier -->
+    <div class="gsap-card bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden group shadow-xs">
+        <div class="absolute top-0 right-0 w-16 h-16 bg-rose-100 rounded-bl-full -mr-8 -mt-8 opacity-40 group-hover:scale-125 transition-transform duration-300 pointer-events-none"></div>
+        <div class="flex justify-between items-start mb-4 relative z-10">
+            <span class="text-xs text-rose-700 uppercase tracking-wider font-bold">À vérifier</span>
+            <div class="w-10 h-10 bg-rose-100 rounded-xl text-rose-700 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="alert-triangle" class="w-5 h-5" aria-hidden="true"></i>
             </div>
         </div>
-        <div class="flex items-baseline gap-sm relative z-10">
-            <span class="font-display-lg text-display-lg text-on-surface">{{ $toVerifyCount }}</span>
-            <span class="font-label-sm text-label-sm text-on-surface-variant">En attente d'approbation</span>
+        <div class="flex items-baseline gap-2 relative z-10">
+            <span class="text-3xl sm:text-4xl text-on-surface font-extrabold stat-counter" data-target="{{ $toVerifyCount }}">{{ $toVerifyCount }}</span>
+            <span class="text-xs text-on-surface-variant">En attente</span>
         </div>
     </div>
 </section>
 
-{{-- Graphiques --}}
-<section class="grid grid-cols-1 lg:grid-cols-3 gap-md md:gap-lg">
-    {{-- Histogramme --}}
-    <div class="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col hover:shadow-md transition-shadow duration-300">
-        <div class="flex justify-between items-center mb-xl">
-            <h3 class="font-headline-md text-headline-md text-on-surface">Évolution des ajouts <span class="text-on-surface-variant font-body-md text-body-md font-normal ml-xs">(7 derniers jours)</span></h3>
+{{-- Graphiques avec animation GSAP --}}
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    {{-- Histogramme GPU-accelerated scaleY --}}
+    <div class="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 sm:p-6 flex flex-col shadow-xs">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h3 class="font-headline-md text-lg sm:text-xl text-on-surface font-bold">Évolution des ajouts</h3>
+                <span class="text-on-surface-variant text-xs">Fréquence des enregistrements sur les 7 derniers jours</span>
+            </div>
+            <div class="flex items-center gap-1.5 px-3 py-1 bg-surface-container-high rounded-lg text-primary text-xs font-semibold">
+                <i data-lucide="trending-up" class="w-4 h-4 text-secondary" aria-hidden="true"></i>
+                <span>Activité récente</span>
+            </div>
         </div>
-        <div class="flex-1 w-full min-h-[240px] relative mt-auto flex items-end justify-between gap-2 sm:gap-4 border-b border-outline-variant pb-xs pt-8">
+        <div class="flex-1 w-full min-h-[220px] relative mt-auto flex items-end justify-between gap-2 sm:gap-4 border-b border-outline-variant pb-2 pt-6">
             @foreach ($weekly as $day)
-                @php $heightPct = $day['count'] > 0 ? max(6, round(($day['count'] / $weeklyMax) * 100)) : 4; @endphp
+                @php $heightPct = $day['count'] > 0 ? max(8, round(($day['count'] / $weeklyMax) * 100)) : 4; @endphp
                 <div class="flex-1 flex flex-col justify-end items-center gap-2 group h-full">
-                    <span class="text-on-surface-variant font-label-sm text-label-sm">{{ $day['count'] }}</span>
-                    <div class="w-full max-w-[40px] bg-secondary-fixed-dim rounded-t-md group-hover:bg-secondary transition-colors" style="height: {{ $heightPct }}%"></div>
-                    <span class="text-on-surface-variant font-label-sm text-label-sm">{{ $day['label'] }}</span>
+                    <span class="text-on-surface-variant text-[11px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity">{{ $day['count'] }}</span>
+                    <div class="chart-bar w-full max-w-[42px] bg-secondary-fixed-dim rounded-t-xl group-hover:bg-secondary transition-colors cursor-pointer relative shadow-2xs" style="height: {{ $heightPct }}%">
+                        <!-- Tooltip flottant -->
+                        <div class="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-primary text-white text-[10px] font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20 shadow-xs">
+                            {{ $day['count'] }} livre{{ $day['count'] > 1 ? 's' : '' }}
+                        </div>
+                    </div>
+                    <span class="text-on-surface-variant text-[11px] font-medium">{{ $day['label'] }}</span>
                 </div>
             @endforeach
         </div>
     </div>
 
-    {{-- Donut --}}
-    <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col items-center justify-between hover:shadow-md transition-shadow duration-300">
-        <div class="w-full flex justify-between items-center mb-lg">
-            <h3 class="font-headline-md text-headline-md text-on-surface">Répartition</h3>
+    {{-- Donut Répartition --}}
+    <div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-between shadow-xs">
+        <div class="w-full flex justify-between items-center mb-6">
+            <h3 class="font-headline-md text-lg sm:text-xl text-on-surface font-bold">Répartition</h3>
+            <span class="text-xs text-on-surface-variant font-medium">Par rubrique</span>
         </div>
 
         @if ($repartition->isEmpty())
-            <p class="text-on-surface-variant font-body-md text-body-md text-center py-lg">Aucune rubrique pour le moment.</p>
+            <div class="py-12 text-center text-on-surface-variant space-y-2">
+                <i data-lucide="pie-chart" class="w-10 h-10 text-outline mx-auto" aria-hidden="true"></i>
+                <p class="text-sm">Aucune rubrique pour le moment.</p>
+            </div>
         @else
             @php
                 $gradientParts = [];
@@ -102,22 +140,22 @@
                 }
                 $gradient = implode(', ', $gradientParts);
             @endphp
-            <div class="relative w-48 h-48 rounded-full shadow-inner mb-lg" style="background: conic-gradient({{ $gradient }});">
-                <div class="absolute inset-4 bg-surface-container-lowest rounded-full flex items-center justify-center shadow-sm">
+            <div id="repartition-donut" class="relative w-44 h-44 rounded-full shadow-inner mb-6 transition-transform duration-300 hover:rotate-6" style="background: conic-gradient({{ $gradient }});">
+                <div class="absolute inset-4 bg-surface-container-lowest rounded-full flex items-center justify-center shadow-xs">
                     <div class="text-center">
-                        <span class="block font-display-lg text-[32px] font-bold text-on-surface leading-none">{{ $totalCategories }}</span>
-                        <span class="font-label-sm text-label-sm text-on-surface-variant">Rubriques</span>
+                        <span class="block text-2xl sm:text-3xl font-extrabold text-on-surface leading-none">{{ $totalCategories }}</span>
+                        <span class="text-[11px] text-on-surface-variant font-medium">Rubriques</span>
                     </div>
                 </div>
             </div>
-            <div class="w-full space-y-sm">
+            <div class="w-full space-y-2 max-h-48 overflow-y-auto pr-1">
                 @foreach ($repartition as $r)
-                    <div class="flex items-center justify-between font-label-md text-label-md">
-                        <div class="flex items-center gap-xs">
-                            <span class="w-3 h-3 rounded-sm" style="background-color: {{ $r['couleur'] }}"></span>
-                            <span class="text-on-surface">{{ $r['nom'] }}</span>
+                    <div class="flex items-center justify-between text-xs py-1 border-b border-outline-variant/40 last:border-0">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ $r['couleur'] }}"></span>
+                            <span class="text-on-surface font-medium truncate">{{ $r['nom'] }}</span>
                         </div>
-                        <span class="text-on-surface-variant font-bold">{{ round(($r['count'] / $repartitionTotal) * 100) }}%</span>
+                        <span class="text-on-surface-variant font-bold ml-2">{{ round(($r['count'] / $repartitionTotal) * 100) }}%</span>
                     </div>
                 @endforeach
             </div>
@@ -126,65 +164,73 @@
 </section>
 
 {{-- Derniers ajouts --}}
-<section class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
-    <div class="px-lg py-md border-b border-outline-variant flex justify-between items-center bg-surface-bright">
-        <h3 class="font-headline-md text-headline-md text-on-surface">Derniers ajouts</h3>
-        <a href="{{ route('books.index') }}" class="font-label-md text-label-md text-secondary hover:text-primary transition-colors flex items-center gap-xs">
-            Voir tout <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+<section class="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden shadow-xs">
+    <div class="px-5 sm:px-6 py-4 border-b border-outline-variant flex justify-between items-center bg-surface-bright">
+        <div>
+            <h3 class="font-headline-md text-lg sm:text-xl text-on-surface font-bold">Derniers ajouts</h3>
+            <span class="text-xs text-on-surface-variant">Livres récemment numérisés ou créés</span>
+        </div>
+        <a href="{{ route('books.index') }}" class="text-xs sm:text-sm text-secondary hover:text-primary transition-colors flex items-center gap-1.5 font-semibold group">
+            <span>Voir tout le catalogue</span>
+            <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
         </a>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-[800px]">
+        <table class="w-full text-left border-collapse min-w-[700px]">
             <thead>
-                <tr class="bg-surface-container-low border-b border-outline-variant/50">
-                    <th class="px-lg py-sm font-label-md text-label-md text-on-surface-variant font-semibold w-24">Couverture</th>
-                    <th class="px-lg py-sm font-label-md text-label-md text-on-surface-variant font-semibold">Titre &amp; ISBN</th>
-                    <th class="px-lg py-sm font-label-md text-label-md text-on-surface-variant font-semibold">Auteur</th>
-                    <th class="px-lg py-sm font-label-md text-label-md text-on-surface-variant font-semibold w-32">Date</th>
-                    <th class="px-lg py-sm font-label-md text-label-md text-on-surface-variant font-semibold w-16"></th>
+                <tr class="bg-surface-container-low border-b border-outline-variant/60 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                    <th class="px-6 py-3 w-20">Couverture</th>
+                    <th class="px-6 py-3">Titre &amp; ISBN</th>
+                    <th class="px-6 py-3">Auteur</th>
+                    <th class="px-6 py-3 w-36">Enregistré</th>
+                    <th class="px-6 py-3 w-20 text-right">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-outline-variant/30 bg-surface-container-lowest">
+            <tbody class="divide-y divide-outline-variant/40 bg-surface-container-lowest">
                 @forelse ($recentBooks as $book)
-                    <tr class="hover:bg-surface-dim/30 transition-colors group">
-                        <td class="px-lg py-md">
-                            <div class="w-12 h-16 bg-surface-container rounded border border-outline-variant overflow-hidden shadow-sm flex items-center justify-center text-outline">
+                    <tr class="hover:bg-surface-dim/40 transition-colors group">
+                        <td class="px-6 py-3.5">
+                            <div class="w-11 h-14 bg-surface-container rounded-lg border border-outline-variant overflow-hidden shadow-2xs flex items-center justify-center text-outline group-hover:scale-105 transition-transform duration-200">
                                 @if ($book->cover_url)
-                                    <img src="{{ $book->cover_url }}" alt="Couverture" class="w-full h-full object-cover">
+                                    <img src="{{ $book->cover_url }}" alt="{{ $book->titre }}" class="w-full h-full object-cover">
                                 @else
-                                    <span class="material-symbols-outlined text-[24px]">broken_image</span>
+                                    <i data-lucide="book" class="w-5 h-5 text-outline" aria-hidden="true"></i>
                                 @endif
                             </div>
                         </td>
-                        <td class="px-lg py-md">
-                            <div class="font-body-md text-body-md font-medium text-on-surface">{{ $book->titre }}</div>
-                            <div class="font-label-sm text-label-sm text-on-surface-variant mt-xs font-mono">ISBN: {{ $book->isbn ?: '[Illisible]' }}</div>
+                        <td class="px-6 py-3.5">
+                            <a href="{{ route('books.edit', $book) }}" class="text-sm font-semibold text-on-surface group-hover:text-secondary transition-colors block">
+                                {{ $book->titre }}
+                            </a>
+                            <div class="text-[11px] text-on-surface-variant mt-0.5 font-mono">
+                                ISBN: {{ $book->isbn ?: '[Non renseigné]' }}
+                            </div>
                         </td>
-                        <td class="px-lg py-md font-body-md text-body-md text-on-surface-variant {{ !$book->auteur ? 'italic text-outline' : '' }}">
+                        <td class="px-6 py-3.5 text-xs text-on-surface-variant {{ !$book->auteur ? 'italic text-outline' : '' }}">
                             {{ $book->auteur ?: 'Non détecté' }}
                         </td>
-                        <td class="px-lg py-md font-body-md text-body-md text-on-surface-variant">{{ $book->created_at->diffForHumans() }}</td>
-                        {{-- <td class="px-lg py-md">
-                            @if ($book->statut === 'valide')
-                                <span class="inline-flex items-center gap-xs px-2 py-1 rounded-full bg-secondary-container/20 text-on-secondary-fixed font-label-sm text-label-sm">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Validé
-                                </span>
-                            @else
-                                <span class="inline-flex items-center gap-xs px-2 py-1 rounded-full bg-error-container/40 text-on-error-container font-label-sm text-label-sm border border-error-container">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-error"></span> À vérifier
-                                </span>
-                            @endif
-                        </td> --}}
-                        <td class="px-lg py-md text-right">
-                            <a href="{{ route('books.edit', $book) }}" aria-label="Modifier" class="text-outline hover:text-primary transition-colors">
-                                <span class="material-symbols-outlined text-[20px]">edit</span>
+                        <td class="px-6 py-3.5 text-xs text-on-surface-variant">
+                            {{ $book->created_at ? $book->created_at->diffForHumans() : 'Récemment' }}
+                        </td>
+                        <td class="px-6 py-3.5 text-right">
+                            <a href="{{ route('books.edit', $book) }}" aria-label="Modifier l'ouvrage {{ $book->titre }}" class="inline-flex p-2 rounded-xl text-outline hover:text-primary hover:bg-surface-container transition-colors">
+                                <i data-lucide="pencil" class="w-4 h-4" aria-hidden="true"></i>
                             </a>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-lg py-xl text-center text-on-surface-variant font-body-md text-body-md">
-                            Aucun livre pour le moment. <a href="{{ route('scan.index') }}" class="text-secondary hover:underline">Scannez votre premier livre</a>.
+                        <td colspan="5" class="px-6 py-12 text-center text-on-surface-variant text-sm">
+                            <div class="max-w-sm mx-auto space-y-3">
+                                <div class="w-12 h-12 rounded-2xl bg-surface-container text-outline flex items-center justify-center mx-auto">
+                                    <i data-lucide="book-open" class="w-6 h-6" aria-hidden="true"></i>
+                                </div>
+                                <p class="font-medium text-on-surface">Aucun livre pour le moment.</p>
+                                <a href="{{ route('scan.index') }}" class="inline-flex items-center gap-1.5 text-secondary font-semibold hover:underline text-xs">
+                                    <i data-lucide="scan-barcode" class="w-4 h-4" aria-hidden="true"></i>
+                                    <span>Scannez votre premier livre</span>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 @endforelse

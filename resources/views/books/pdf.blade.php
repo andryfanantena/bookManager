@@ -9,6 +9,7 @@
         table { width: 100%; border-collapse: collapse; }
         th { background-color: #e7eeff; color: #444651; text-align: left; padding: 6px 8px; font-size: 10px; text-transform: uppercase; }
         td { padding: 6px 8px; border-bottom: 1px solid #d8e3fb; }
+        .author { overflow-wrap: anywhere; }
         tr:nth-child(even) td { background-color: #f9f9ff; }
         .badge { padding: 2px 6px; border-radius: 8px; font-size: 9px; font-weight: bold; }
         .badge-valide { background-color: #d8e3fb; color: #00236f; }
@@ -30,7 +31,7 @@
                 <th>ISBN</th>
                 <th>Rubrique</th>
                 <th>Rayon</th>
-                <th>Statut</th>
+                <th>Lien Editeur</th>
             </tr>
         </thead>
         <tbody>
@@ -38,17 +39,13 @@
                 <tr>
                     <td>{{ $book->cote_dewey }}</td>
                     <td>{{ $book->titre }}</td>
-                    <td>{{ $book->auteur }}</td>
+                    <td class="author">{{ $book->auteur }}</td>
                     <td>{{ $book->editeur }}</td>
                     <td>{{ $book->date_edition }}</td>
                     <td>{{ $book->isbn }}</td>
                     <td>{{ $book->category?->nom }}</td>
                     <td>{{ $book->rayon }}</td>
-                    {{-- <td>
-                        <span class="badge {{ $book->statut === 'valide' ? 'badge-valide' : 'badge-verif' }}">
-                            {{ $book->statut === 'valide' ? 'Validé' : 'À vérifier' }}
-                        </span>
-                    </td> --}}
+                    <td>{{ $book->lien_editeur }}</td>
                 </tr>
             @endforeach
         </tbody>

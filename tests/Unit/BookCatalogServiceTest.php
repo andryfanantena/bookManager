@@ -4,10 +4,45 @@ namespace Tests\Unit;
 
 use App\Services\BookCatalogService;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class BookCatalogServiceTest extends TestCase
 {
+    public function test_it_downloads_and_stores_a_cover_from_a_catalog_host(): void
+    {
+        Storage::fake('public');
+        Http::fake([
+            'covers.openlibrary.org/b/id/12345-L.jpg' => Http::response(
+                base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p5sAAAAASUVORK5CYII='),
+                200,
+                ['Content-Type' => 'image/png'],
+            ),
+        ]);
+
+        $path = app(BookCatalogService::class)->downloadCover(
+            'https://covers.openlibrary.org/b/id/12345-L.jpg',
+            '9782070368228',
+        );
+
+        $this->assertSame('covers/catalog/9782070368228.png', $path);
+        Storage::disk('public')->assertExists($path);
+    }
+
+    public function test_it_rejects_cover_urls_from_untrusted_hosts(): void
+    {
+        Storage::fake('public');
+        Http::fake();
+
+        $path = app(BookCatalogService::class)->downloadCover(
+            'https://example.com/cover.jpg',
+            '9782070368228',
+        );
+
+        $this->assertNull($path);
+        Http::assertNothingSent();
+    }
+
     public function test_it_uses_google_books_as_the_primary_source(): void
     {
         Http::fake([
@@ -99,7 +134,7 @@ class BookCatalogServiceTest extends TestCase
         $this->assertSame('https://covers.openlibrary.org/b/id/12345-L.jpg', $result['data']['cover_image']);
     }
 
-    public function test_it_uses_amazon_as_a_cover_fallback_when_catalogs_have_no_image(): void
+    public function test_it_uses_open_library_as_a_cover_fallback_when_catalogs_have_no_image(): void
     {
         Http::fake([
             'openlibrary.org/isbn/*' => Http::response([], 404),
@@ -118,7 +153,7 @@ class BookCatalogServiceTest extends TestCase
         $result = app(BookCatalogService::class)->findByIsbn('9782010009037');
 
         $this->assertSame(
-            'https://images-eu.ssl-images-amazon.com/images/P/9782010009037.01._SX350_.jpg',
+            'https://covers.openlibrary.org/b/isbn/9782010009037-L.jpg?default=false',
             $result['data']['cover_image']
         );
     }
@@ -167,7 +202,7 @@ class BookCatalogServiceTest extends TestCase
         $this->assertSame('Open Library', $result['source']);
         $this->assertSame('1984', $result['data']['titre']);
         $this->assertSame(
-            'https://images-eu.ssl-images-amazon.com/images/P/9780306406157.01._SX350_.jpg',
+            'https://covers.openlibrary.org/b/isbn/9780306406157-L.jpg?default=false',
             $result['data']['cover_image']
         );
         Http::assertSentCount(5);

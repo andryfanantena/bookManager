@@ -45,7 +45,28 @@ class ScanController extends Controller
         ]);
         $isbn = $validated['isbn'];
 
-        $catalogResult = app(BookCatalogService::class)->findByIsbn($isbn);
+        $existingBook = Book::query()
+            ->whereRaw("UPPER(REPLACE(REPLACE(isbn, '-', ''), ' ', '')) = ?", [$isbn])
+            ->first();
+        if ($existingBook) {
+            $message = 'Un livre avec cet ISBN existe déjà. Vous pouvez modifier sa fiche.';
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'book' => $existingBook,
+                    'redirect' => route('books.edit', $existingBook),
+                    'message' => $message,
+                    'existing' => true,
+                ]);
+            }
+
+            return redirect()
+                ->route('books.edit', $existingBook)
+                ->with('warning', $message);
+        }
+
+        $catalogService = app(BookCatalogService::class);
+        $catalogResult = $catalogService->findByIsbn($isbn);
 
         if (! $catalogResult) {
             $book = Book::create([
@@ -84,6 +105,17 @@ class ScanController extends Controller
             'chapitres' => [],
         ], $catalogResult['data'] ?? []);
         $catalogData = $catalogResult['data'] ?? [];
+        $coverImage = $catalogData['cover_image'] ?? null;
+        if (is_string($coverImage) && $coverImage !== '') {
+            $storedCover = $catalogService->downloadCover($coverImage, $isbn);
+            if ($storedCover !== null) {
+                $coverImage = $storedCover;
+            }
+        }
+
+        $dateEdition = preg_match('/(?<!\d)(\d{4})(?!\d)/', (string) $data['date_edition'], $matches) === 1
+            ? $matches[1]
+            : null;
 
         // Les catégories du catalogue alimentent la rubrique et les mots-clés.
         $data['isbn'] = $isbn;
@@ -92,10 +124,12 @@ class ScanController extends Controller
         if (empty($data['rubrique'])) {
             $data['rubrique'] = $catalogCategories[0] ?? '';
         }
-        $data['mots_cles'] = array_values(array_unique(array_merge(
-            $catalogCategories,
-            $data['mots_cles'] ?? []
-        )));
+        $data['mots_cles'] = collect($data['chapitres'] ?? [])
+            ->filter(fn ($chapter) => is_string($chapter) && trim($chapter) !== '')
+            ->map(fn (string $chapter) => trim($chapter))
+            ->unique()
+            ->values()
+            ->all();
 
         // On associe/crée la rubrique issue du classement IA ou du catalogue.
         $category = null;
@@ -108,7 +142,7 @@ class ScanController extends Controller
             'titre' => $data['titre'] ?: 'Titre inconnu - Recherche ISBN',
             'auteur' => $data['auteur'] ?: null,
             'editeur' => $data['editeur'] ?: null,
-            'date_edition' => $data['date_edition'] ?: null,
+            'date_edition' => $dateEdition,
             'isbn' => $isbn,
             'lien_editeur' => $catalogData['lien_editeur'] ?? null,
             'code_barre' => $data['code_barre'] ?: null,
@@ -118,7 +152,7 @@ class ScanController extends Controller
             'rayon' => $data['rayon'] ?: null,
             'mots_cles' => $data['mots_cles'] ?: [],
             'chapitres' => $data['chapitres'] ?: [],
-            'cover_image' => $catalogData['cover_image'] ?? null,
+            'cover_image' => $coverImage,
             'statut' => 'a_verifier',
             'ai_raw_response' => [
                 'catalog_source' => $catalogResult['source'] ?? null,
@@ -131,6 +165,7 @@ class ScanController extends Controller
                 'book' => $book,
                 'redirect' => route('books.edit', $book),
                 'source' => $catalogResult['source'],
+                'cover_downloaded' => $coverImage !== null,
             ]);
         }
 

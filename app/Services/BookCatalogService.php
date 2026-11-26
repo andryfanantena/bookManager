@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
@@ -23,6 +25,136 @@ use Throwable;
  */
 class BookCatalogService
 {
+    public function downloadCover(string $url, string $isbn): ?string
+    {
+        $safeIsbn = preg_replace('/[^0-9X]/i', '', $isbn);
+        if ($safeIsbn === '') {
+            return null;
+        }
+
+        for ($redirects = 0; $redirects <= 3; $redirects++) {
+            if (! $this->isAllowedCoverUrl($url)) {
+                Log::warning('Book cover URL is not from an allowed host', ['isbn' => $safeIsbn]);
+
+                return null;
+            }
+
+            try {
+                $response = Http::accept('image/*')
+                    ->timeout(8)
+                    ->withOptions(['allow_redirects' => false])
+                    ->get($url);
+            } catch (ConnectionException $exception) {
+                Log::warning('Book cover download failed', [
+                    'isbn' => $safeIsbn,
+                    'exception' => $exception::class,
+                ]);
+
+                return null;
+            }
+
+            if (in_array($response->status(), [301, 302, 303, 307, 308], true)) {
+                $location = $response->header('Location');
+                $url = is_string($location) ? $this->resolveCoverRedirect($url, $location) : '';
+
+                if ($url === '') {
+                    Log::warning('Book cover redirect is invalid', ['isbn' => $safeIsbn]);
+
+                    return null;
+                }
+
+                continue;
+            }
+
+            if (! $response->successful()) {
+                Log::warning('Book cover request returned an unsuccessful status', [
+                    'isbn' => $safeIsbn,
+                    'status' => $response->status(),
+                ]);
+
+                return null;
+            }
+
+            $contents = $response->body();
+            if ($contents === '' || strlen($contents) > 8 * 1024 * 1024) {
+                Log::warning('Book cover response has an invalid size', ['isbn' => $safeIsbn]);
+
+                return null;
+            }
+
+            $extension = match ((new \finfo(FILEINFO_MIME_TYPE))->buffer($contents)) {
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+                'image/gif' => 'gif',
+                default => null,
+            };
+
+            if ($extension === null) {
+                Log::warning('Book cover response is not a supported image', ['isbn' => $safeIsbn]);
+
+                return null;
+            }
+
+            $path = 'covers/catalog/'.$safeIsbn.'.'.$extension;
+            if (! Storage::disk('public')->put($path, $contents)) {
+                Log::warning('Book cover could not be stored', ['isbn' => $safeIsbn]);
+
+                return null;
+            }
+
+            return $path;
+        }
+
+        Log::warning('Book cover exceeded the redirect limit', ['isbn' => $safeIsbn]);
+
+        return null;
+    }
+
+    protected function isAllowedCoverUrl(string $url): bool
+    {
+        $parts = parse_url($url);
+        $allowedHosts = [
+            'books.google.com',
+            'books.googleusercontent.com',
+            'covers.openlibrary.org',
+            'gallica.bnf.fr',
+        ];
+
+        return is_array($parts)
+            && strtolower($parts['scheme'] ?? '') === 'https'
+            && in_array(strtolower($parts['host'] ?? ''), $allowedHosts, true)
+            && ! isset($parts['user'])
+            && ! isset($parts['pass'])
+            && (! isset($parts['port']) || $parts['port'] === 443);
+    }
+
+    protected function resolveCoverRedirect(string $url, string $location): string
+    {
+        if (parse_url($location, PHP_URL_SCHEME) !== null) {
+            return $location;
+        }
+
+        $parts = parse_url($url);
+        if (! is_array($parts) || empty($parts['host'])) {
+            return '';
+        }
+
+        $origin = 'https://'.$parts['host'];
+        if (str_starts_with($location, '//')) {
+            return 'https:'.$location;
+        }
+
+        if (str_starts_with($location, '/')) {
+            return $origin.$location;
+        }
+
+        $path = $parts['path'] ?? '/';
+        $directory = substr($path, 0, (int) strrpos($path, '/') + 1);
+
+        return $origin.$directory.$location;
+    }
+
     public function findByIsbn(string $isbn): ?array
     {
         $googleBooks = $this->findInGoogleBooks($isbn);
@@ -45,7 +177,7 @@ class BookCatalogService
                 $data['cover_image'] ??= $dewey['cover_image'];
             }
 
-            $data['cover_image'] ??= $this->amazonCoverUrlForIsbn($isbn);
+            $data['cover_image'] ??= $this->openLibraryCoverUrlForIsbn($isbn);
 
             return [
                 'source' => implode(' + ', $sources),
@@ -64,7 +196,7 @@ class BookCatalogService
 
         if ($openLibrary) {
             $data = $openLibrary['data'];
-            $data['cover_image'] ??= $this->amazonCoverUrlForIsbn($isbn);
+            $data['cover_image'] ??= $this->openLibraryCoverUrlForIsbn($isbn);
 
             return [
                 'source' => $openLibrary['source'],
@@ -84,7 +216,7 @@ class BookCatalogService
         }
 
         $data = $gallica['data'];
-        $data['cover_image'] ??= $this->amazonCoverUrlForIsbn($isbn);
+        $data['cover_image'] ??= $this->openLibraryCoverUrlForIsbn($isbn);
 
         return [
             'source' => $gallica['source'],
@@ -98,9 +230,9 @@ class BookCatalogService
         ];
     }
 
-    protected function amazonCoverUrlForIsbn(string $isbn): string
+    protected function openLibraryCoverUrlForIsbn(string $isbn): string
     {
-        return 'https://images-eu.ssl-images-amazon.com/images/P/'.rawurlencode($isbn).'.01._SX350_.jpg';
+        return 'https://covers.openlibrary.org/b/isbn/'.rawurlencode($isbn).'-L.jpg?default=false';
     }
 
     /**
@@ -202,7 +334,10 @@ class BookCatalogService
             // couverture ; on préfère la version "thumbnail" (plus grande
             // que "smallThumbnail") et on force le HTTPS (l'API renvoie
             // parfois du http:// brut).
-            $thumbnail = $info['imageLinks']['thumbnail']
+            $thumbnail = $info['imageLinks']['extraLarge']
+                ?? $info['imageLinks']['large']
+                ?? $info['imageLinks']['medium']
+                ?? $info['imageLinks']['thumbnail']
                 ?? $info['imageLinks']['smallThumbnail']
                 ?? null;
             $coverImage = $thumbnail ? preg_replace('/^http:/', 'https:', $thumbnail) : null;
